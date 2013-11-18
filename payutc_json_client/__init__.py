@@ -80,7 +80,7 @@ class PayutcJsonClient(object):
         if self._cookie is not None:
             headers['Cookie'] = self.cookie
             
-        r = requests.get(url, params=params)
+        r = requests.post(url, data=params)
             
         if r.status_code is not requests.codes.ok:
             raise PayutcJsonClientError("InvalidHTTPCode", 37, "La page n'a pas renvoyé un code 200.", r.status_code)
