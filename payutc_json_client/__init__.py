@@ -28,29 +28,27 @@ import requests
 
 class PayutcJsonClientError(Exception):
 
-    def __init__(self, genre, code, msg, http_code=None):
+    def __init__(self, genre, msg, http_code=None):
         self.genre = genre
-        self.code = code
         self.msg = msg
         self.http_code = http_code
 
     def __str__(self):
         if http_code is not None:
-            return "JsonException(type={%s}, code={%d}, msg={%d}, http_code={%d})" % (self.genre, self.code, self.msg, self.http_code)
+            return "JsonException(type={%s}, msg={%d}, http_code={%d})" % (self.genre, self.code, self.http_code)
         else:
-            return "JsonException(type={%s}, code={%d}, msg={%d})" % (self.genre, self.code, self.msg)
+            return "JsonException(type={%s}, msg={%d})" % (self.genre, self.msg)
             
             
 class PayutcJsonClient(object):
 
-    def __init__(self, url, service, user_agent="python jsonclient", cookie=None):
+    def __init__(self, url, service, user_agent="python jsonclient"):
         u"""Crée un client lié à un service
 
         Arguments :
         url -- url de base du serveur
         service -- le service avec lequel le client est lié
         user_agent -- le user agent qu'utilisera le client
-        cookie -- un cookie à transmettre au serveur
         
         Lève une JsonClientError si le serveur ne renvoie pas un code 200
         
@@ -58,10 +56,11 @@ class PayutcJsonClient(object):
         
         self.url = "%s/%s/" % (url, service)
         self.user_agent = user_agent
-        self.cookie = cookie
+        self.session = requests.Session()
+        self.session.headers.update({'User-Agent': self.user_agent})
         
 
-    def api_call(self, func, params=None):
+    def call(self, func, **params):
         u"""Se connecte au service pour chercher le résultat de func(params)
         Retourne la réponse sous la forme d'un objet python (list, dict, boolean, …) 
 
@@ -72,36 +71,19 @@ class PayutcJsonClient(object):
         Lève une PayutcJsonClientError si le serveur ne renvoie pas un code 200
         
         """
-        
-        headers = {'User-Agent': self.user_agent}
 
-        url = "%s%s" % (self._url, func)
-        
-        if self._cookie is not None:
-            headers['Cookie'] = self.cookie
+        if not func:
+            raise ValueError("Le paramètre func doit être fourni")
             
-        r = requests.post(url, data=params)
+        url = "%s%s" % (self.url, func)
+
+        r = self.session.post(url, data=params)
             
         if r.status_code is not requests.codes.ok:
-            raise PayutcJsonClientError("InvalidHTTPCode", 37, "La page n'a pas renvoyé un code 200.", r.status_code)
-
-        self._cookie = r.cookies
+            raise PayutcJsonClientError("InvalidHTTPCode", "La page n'a pas renvoyé un code 200.", r.status_code)
             
         return r.json()
 
-    def __getattr__(self, func, **params):
-        u"""Modification de __getattr__ permettant l'appel de fonctions du service
-        sous la forme :
-            >>>client.loginApp(key=XXX)
-            True
-
-        Arguments :
-        func -- méthode du service à appeler
-        **params -- arguments de la fonction
-        
-        
-        """
-        return self.api_call(func, params)
 
     
     
