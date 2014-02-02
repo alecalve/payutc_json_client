@@ -54,11 +54,20 @@ class PayutcJsonClient(object):
         
         """
         
-        self.url = "%s/%s/" % (url, service)
+        self.url = url
         self.user_agent = user_agent
+        self.service = service
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': self.user_agent})
         
+    def set_service(self, service):
+        self.service = service
+
+    def get_cookie(self):
+        return self.session.cookies["PHPSESSID"]
+
+    def set_cookie(self, cookie):
+        self.session.cookies["PHPSESSID"] = cookie
 
     def call(self, func, **params):
         u"""Se connecte au service pour chercher le résultat de func(params)
@@ -75,7 +84,7 @@ class PayutcJsonClient(object):
         if not func:
             raise ValueError("Le paramètre func doit être fourni")
             
-        url = "%s%s" % (self.url, func)
+        url = "%s/%s/%s" % (self.url, self.service, func)
 
         r = self.session.post(url, data=params)
             
@@ -84,6 +93,8 @@ class PayutcJsonClient(object):
             
         return r.json()
 
+if __name__ == '__main__':
+    c = PayutcJsonClient("http://payutc.code.localhost/server/web", "POSS3")
 
     
     
